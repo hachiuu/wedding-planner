@@ -30,13 +30,14 @@ const sb=supabase.createClient('https://oausdbwevmmazlagomkx.supabase.co','sb_pu
 const S={
  budget:{n:'Wedding Budget',cols:[[0,'Kategori'],[1,'Detail'],[2,'Status','s'],[3,'Vendor'],[5,'Harga','n'],[6,'DP / Bayar','n'],[7,'Sisa','n'],[8,'Tgl bayar']]},
  tasks:{n:'To Do List',cols:[[0,'Kategori'],[1,'Tugas'],[2,'Status','s'],[3,'Selesai','c'],[4,'PJ'],[5,'Vendor'],[6,'Kontak'],[8,'Batas waktu']]},
- guests:{n:'Daftar Tamu',cols:[[0,'Kategori'],[1,'Nama'],[2,'Jenis kelamin'],[3,'Prioritas'],[4,'Undangan']]},
+ guests:{n:'Daftar Tamu',cols:[[0,'Kategori','s'],[1,'Nama'],[2,'Jenis kelamin','s'],[3,'Prioritas','s'],[4,'Undangan','s']]},
  gifts:{n:'Seserahan',cols:[[0,'No'],[1,'Kategori'],[2,'Barang'],[3,'Brand'],[4,'Centang','c'],[6,'Link'],[7,'Harga anggaran','n'],[8,'Harga beli','n']]},
  songs:{n:'Playlist',cols:[[0,'No'],[1,'Judul lagu'],[2,'Keterangan']]}
 };
 let R={},page='dashboard';
 // Pilihan dropdown Status per menu. Mau ganti pilihan? Edit tulisan di dalam kurung siku ini.
-const OPT={tasks:['Undecided','Unprocessed','On Progress','Done'],budget:['Belum Bayar','DP','Lunas']};
+const OPT={tasks:['Undecided','Unprocessed','On Progress','Done'],budget:['Belum Bayar','DP','Lunas'],
+ 'guests:0':['Tamu Cita','Tamu Kasyif'],'guests:2':['Laki-laki','Perempuan'],'guests:3':['VIP (Keluarga)','VIP (Non Keluarga)','Biasa'],'guests:4':['Digital','Fisik','Lisan/Chat']};
 const rp=n=>'Rp '+new Intl.NumberFormat('id-ID').format(n||0);
 const num=v=>Number(v)||0;
 const esc=s=>String(s??'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
@@ -49,6 +50,9 @@ async function load(){
  for(const r of R.tasks){const v=r.cells[2];if(v&&!OPT.tasks.includes(v)){const n=mp(v);if(n){r.cells[2]=n;sb.from('planner_rows').update({cells:r.cells}).eq('id',r.id).then(()=>{})}}}
  const mb=v=>{const u=String(v).toUpperCase();return u.includes('LUNAS')?'Lunas':u.includes('SUDAH')?'DP':u.includes('BELUM')?'Belum Bayar':null};
  for(const r of R.budget){const v=r.cells[2];if(v&&!OPT.budget.includes(v)){const n=mb(v);if(n){r.cells[2]=n;sb.from('planner_rows').update({cells:r.cells}).eq('id',r.id).then(()=>{})}}}
+ const U=v=>String(v).toUpperCase();
+ const mg={0:v=>U(v).includes('CPW')?'Tamu Cita':U(v).includes('CPP')?'Tamu Kasyif':null,2:v=>U(v).includes('PEREMPUAN')?'Perempuan':U(v).includes('LAKI')?'Laki-laki':null,3:v=>U(v)==='TINGGI'?'VIP (Non Keluarga)':(U(v)==='SEDANG'||U(v)==='RENDAH')?'Biasa':null,4:v=>U(v).includes('DIGITAL')?'Digital':U(v).includes('FISIK')?'Fisik':(U(v).includes('LISAN')||U(v).includes('CHAT'))?'Lisan/Chat':null};
+ for(const r of R.guests){let ch=false;for(const i in mg){const v=r.cells[i];if(v&&!OPT['guests:'+i].includes(v)){const n=mg[i](v);if(n){r.cells[i]=n;ch=true}}}if(ch)sb.from('planner_rows').update({cells:r.cells}).eq('id',r.id).then(()=>{})}
  render();
 }
 function render(){
@@ -66,7 +70,7 @@ function render(){
  C.innerHTML=`<div class="bar"><input class="search" id="q" placeholder="Cari…" oninput="filt()"><button class="btn p" onclick="addRow()">+ Tambah baris</button></div>
  <div class="wrap"><table><thead><tr>${s.cols.map(c=>`<th>${c[1]}</th>`).join('')}<th></th></tr></thead><tbody>${rows.map(r=>`<tr data-id="${r.id}">${s.cols.map(([i,,t])=>{const v=r.cells[i];
   if(t==='c')return `<td><input type="checkbox" ${v===true?'checked':''} onchange="edit(${r.id},${i},this.checked)"></td>`;
-  if(t==='s'&&OPT[page])return `<td><select class="sel" onchange="edit(${r.id},${i},this.value,'t')"><option value="">—</option>${OPT[page].map(o=>`<option ${v===o?'selected':''}>${o}</option>`).join('')}</select></td>`;
+  const O=OPT[page+':'+i]||OPT[page];if(t==='s'&&O)return `<td><select class="sel" onchange="edit(${r.id},${i},this.value,'t')"><option value="">—</option>${O.map(o=>`<option ${v===o?'selected':''}>${o}</option>`).join('')}</select></td>`;
   return `<td><input type="text" value="${esc(v)}" ${t==='n'?'inputmode="numeric"':''} onchange="edit(${r.id},${i},this.value,'${t||'t'}')"></td>`}).join('')}<td><button class="x" onclick="del(${r.id})">✕</button></td></tr>`).join('')}</tbody></table></div>`;
 }
 function filt(){const q=document.getElementById('q').value.toLowerCase();document.querySelectorAll('tbody tr').forEach(tr=>{tr.style.display=[...tr.querySelectorAll('input[type=text]')].map(i=>i.value).join(' ').toLowerCase().includes(q)?'':'none'})}
