@@ -76,4 +76,31 @@ function render(page){
 function go(p){render(p)}
 document.querySelectorAll('#nav button').forEach(b=>b.addEventListener('click',()=>render(b.dataset.page)));
 render('dashboard');
-</script></body></html>
+</script>
+ <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL = 'https://oausdbwevmmazlagomkx.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_YFy4TdW56ipZXlqRgoIU2A_6aXiwFp2';
+
+const supabaseClient = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_KEY
+);
+
+async function loadWeddingBudget() {
+  const { data, error } = await supabaseClient
+    .from('wedding_budget')
+    .select('*');
+
+  if (error) {
+    alert('Gagal memuat anggaran: ' + error.message);
+    return;
+  }
+
+  console.log('Data anggaran berhasil dibaca:', data);
+}
+
+loadWeddingBudget();
+</script>
+</body>
+</html>
