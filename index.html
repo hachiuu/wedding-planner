@@ -33,7 +33,7 @@ const DATA = {"budget": [["Administrasi KUA", "Medical Check Up", "SUDAH DP", nu
 const fmt = n => new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(Number(n)||0);
 const txt = v => (v===null||v===undefined||v==='')?'—':String(v);
 const esc = s => String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-function table(headers, rows){return `<div class="panel table-wrap"><table><thead><tr>${headers.map(x=>`<th>${esc(x)}</th>`).join('')}</tr></thead><tbody>${rows.length?rows.map(row=>`<tr>${row.map(x=>`<td>${esc(x)}</td>`).join('')}</tr>`).join(''):`<tr><td colspan="${headers.length}" class="empty">Belum ada data.</td></tr>`}</tbody></table></div>`}
+function table(headers, rows){return `<div class="panel table-wrap"><table><thead><tr>${headers.map(x=>`<th>${esc(x)}</th>`).join('')}</tr></thead><tbody>${rows.length?rows.map(row=>`<tr>${row.map((x,i)=>`<td>${i===2?x:esc(x)}</td>`).join('')}</tr>`).join(''):`<tr><td colspan="${headers.length}" class="empty">Belum ada data.</td></tr>`}</tbody></table></div>`}
 function status(v){let s=String(v??'').toUpperCase();return `<span class="status ${s.includes('SELESAI')||s.includes('LUNAS')||s==='DONE'||s==='TRUE'?'done':''}">${esc(txt(v))}</span>`}
 function dashboard(){
  const budget=DATA.budget.filter(r=>Number(r[5])>0); const total=budget.reduce((a,r)=>a+(Number(r[5])||0),0); const paid=budget.reduce((a,r)=>a+(Number(r[6])||0),0);
