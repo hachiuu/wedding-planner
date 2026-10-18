@@ -23,7 +23,8 @@ textarea{width:100%;height:140px;border:1px solid var(--line);border-radius:10px
 <main class="main"><h1 id="t"></h1><div class="desc" id="d"></div><div id="c">Memuat…</div></main></div><div id="msg"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-const sb=supabase.createClient('https://oausdbwevmmazlagomkx.supabase.co','sb_publishable_YFy4TdW56ipZXlqRgoIU2A_6aXiwFp2');
+const safeFetch=(u,o={})=>{o=Object.assign({},o);if(o.headers&&typeof o.headers.entries==='function'&&!Array.isArray(o.headers))o.headers=Object.fromEntries(o.headers.entries());return fetch(String(u&&u.url?u.url:u),o)};
+const sb=supabase.createClient('https://oausdbwevmmazlagomkx.supabase.co','sb_publishable_YFy4TdW56ipZXlqRgoIU2A_6aXiwFp2',{global:{fetch:safeFetch}});
 // cols: [index di data, label, tipe] tipe: t=teks, n=angka, c=centang
 const S={
  budget:{n:'Wedding Budget',cols:[[0,'Kategori'],[1,'Detail'],[2,'Status'],[3,'Vendor'],[5,'Harga','n'],[6,'DP / Bayar','n'],[7,'Sisa','n'],[8,'Tgl bayar']]},
