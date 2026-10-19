@@ -17,6 +17,11 @@ td input[type=text]{width:100%;min-width:90px;border:1px solid transparent;backg
 td input[type=text]:hover{border-color:var(--line)}td input[type=text]:focus{outline:0;border-color:var(--green);background:#fff}
 .sel{width:100%;min-width:120px;border:1px solid var(--line);background:#fff;border-radius:6px;padding:7px;font:inherit;color:inherit}
 td input.num{text-align:right}td input.ro{color:var(--muted);cursor:default}
+table{table-layout:fixed}th{padding:10px 6px 10px 10px}th.r{text-align:right;padding-right:11px}td{padding:3px}
+td input[type=text]{min-width:0}td textarea{display:block;width:100%;border:1px solid transparent;background:transparent;padding:7px;border-radius:6px;font:inherit;color:inherit;resize:none;overflow:hidden;line-height:1.35}
+td textarea:hover{border-color:var(--line)}td textarea:focus{outline:0;border-color:var(--green);background:#fff}
+td input.sm,td textarea.sm,td select.sel{font-size:12px}td input.num{font-size:12.5px}td select.sel{min-width:0;padding:5px 3px}
+td input[type=checkbox]{width:14px;height:14px;margin-left:6px}
 .x{border:0;background:none;color:#b55;cursor:pointer;font-size:16px}#msg{position:fixed;bottom:14px;right:14px;background:var(--ink);color:#fff;padding:9px 14px;border-radius:9px;opacity:0;transition:.25s}
 textarea{width:100%;height:140px;border:1px solid var(--line);border-radius:10px;padding:10px;font:12px monospace}
 @media(max-width:760px){.app{grid-template-columns:1fr}.side{border:0;border-bottom:1px solid var(--line)}.nav{display:flex;overflow:auto}.nav button{white-space:nowrap}.cards{grid-template-columns:1fr}}
@@ -32,10 +37,15 @@ const S={
  budget:{n:'Wedding Budget',cols:[[0,'Kategori'],[1,'Detail'],[2,'Status','s'],[3,'Vendor'],[5,'Harga','n'],[6,'DP / Bayar','n'],[7,'Sisa','r'],[8,'Tgl bayar','d']]},
  tasks:{n:'To Do List',cols:[[0,'Kategori'],[1,'Tugas'],[2,'Status','s'],[3,'Selesai','c'],[4,'PJ'],[5,'Vendor'],[6,'Kontak'],[8,'Batas waktu','d']]},
  guests:{n:'Daftar Tamu',cols:[[0,'Kategori','s'],[1,'Nama'],[2,'Jenis kelamin','s'],[3,'Prioritas','s'],[4,'Undangan','s']]},
- gifts:{n:'Seserahan',cols:[[0,'No'],[1,'Kategori'],[2,'Barang'],[3,'Brand'],[4,'Centang','c'],[6,'Link'],[7,'Harga anggaran','n'],[8,'Harga beli','n']]},
+ gifts:{n:'Seserahan',cols:[[0,'No'],[1,'Kategori'],[2,'Barang'],[3,'Brand'],[4,'Centang','c'],[6,'Link','l'],[7,'Harga anggaran','n'],[8,'Harga beli','n']]},
  songs:{n:'Playlist',cols:[[0,'No'],[1,'Judul lagu'],[2,'Keterangan']]}
 };
 let R={},page='dashboard';
+// Lebar kolom (px) per menu, urutannya sama dengan urutan kolom di atas. Mau melebarkan/menyempitkan kolom? Ubah angkanya.
+const W={budget:[130,220,105,120,95,95,95,100],tasks:[125,220,105,55,90,110,110,100],guests:[110,220,110,150,110],gifts:[45,120,170,130,60,170,100,100],songs:[45,380,380]};
+const SMALL={'tasks:4':1};
+function grow(e){e.style.height='auto';e.style.height=e.scrollHeight+'px'}
+window.addEventListener('resize',()=>document.querySelectorAll('textarea').forEach(grow));
 // Pilihan dropdown Status per menu. Mau ganti pilihan? Edit tulisan di dalam kurung siku ini.
 const OPT={tasks:['Undecided','Unprocessed','On Progress','Done'],budget:['Belum Bayar','DP','Lunas'],
  'guests:0':['Tamu Cita','Tamu Kasyif'],'guests:2':['Laki-laki','Perempuan'],'guests:3':['VIP (Keluarga)','VIP (Non Keluarga)','Biasa'],'guests:4':['Digital','Fisik','Lisan/Chat']};
@@ -85,17 +95,19 @@ function render(){
  const s=S[page];T.textContent=s.n;D.textContent='Klik isian mana saja untuk mengedit. Tersimpan otomatis.';
  const rows=R[page]||[];
  C.innerHTML=`<div class="bar"><input class="search" id="q" placeholder="Cari…" oninput="filt()"><button class="btn p" onclick="addRow()">+ Tambah baris</button></div>
- <div class="wrap"><table><thead><tr>${s.cols.map(c=>`<th>${c[1]}</th>`).join('')}<th></th></tr></thead><tbody>${rows.map(r=>`<tr data-id="${r.id}">${s.cols.map(([i,,t])=>{const v=r.cells[i];
+ <div class="wrap"><table style="min-width:${W[page].reduce((a,b)=>a+b,32)}px"><colgroup>${W[page].map(x=>`<col style="width:${x}px">`).join('')}<col style="width:32px"></colgroup><thead><tr>${s.cols.map(c=>`<th class="${c[2]==='n'||c[2]==='r'?'r':''}">${c[1]}</th>`).join('')}<th></th></tr></thead><tbody>${rows.map(r=>`<tr data-id="${r.id}">${s.cols.map(([i,,t])=>{const v=r.cells[i];
   if(t==='c')return `<td><input type="checkbox" ${v===true?'checked':''} onchange="edit(${r.id},${i},this.checked)"></td>`;
   if(t==='r'){const a=r.cells[5],b=r.cells[6];return `<td><input type="text" class="num ro" readonly value="${(a==null&&b==null)?'':fmtN(num(a)-num(b))}"></td>`}
   const O=OPT[page+':'+i]||OPT[page];if(t==='s'&&O)return `<td><select class="sel" onchange="edit(${r.id},${i},this.value,'t')"><option value="">—</option>${v&&!O.includes(v)?`<option selected>${esc(v)}</option>`:''}${O.map(o=>`<option ${v===o?'selected':''}>${o}</option>`).join('')}</select></td>`;
-  return `<td><input type="text" class="${t==='n'?'num':''}" value="${esc(t==='n'?fmtN(v):v)}" ${t==='n'?'inputmode="numeric" oninput="this.value=liveN(this.value)"':''} ${t==='d'?'placeholder="10 Dec 2026"':''} onchange="edit(${r.id},${i},this.value,'${t||'t'}')"></td>`}).join('')}<td><button class="x" onclick="del(${r.id})">✕</button></td></tr>`).join('')}</tbody></table></div>`;
+  if(!t||t==='t')return `<td><textarea rows="1" class="${SMALL[page+':'+i]?'sm':''}" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur()}" oninput="grow(this)" onchange="edit(${r.id},${i},this.value,'t')">${esc(v)}</textarea></td>`;
+  return `<td><input type="text" class="${t==='n'?'num':(t==='d'||t==='l')?'sm':''}" value="${esc(t==='n'?fmtN(v):v)}" ${t==='n'?'inputmode="numeric" oninput="this.value=liveN(this.value)"':''} ${t==='d'?'placeholder="10 Dec 2026"':''} onchange="edit(${r.id},${i},this.value,'${t||'t'}')"></td>`}).join('')}<td><button class="x" onclick="del(${r.id})">✕</button></td></tr>`).join('')}</tbody></table></div>`;
+ document.querySelectorAll('textarea').forEach(grow);
 }
-function filt(){const q=document.getElementById('q').value.toLowerCase();document.querySelectorAll('tbody tr').forEach(tr=>{tr.style.display=[...tr.querySelectorAll('input[type=text]')].map(i=>i.value).join(' ').toLowerCase().includes(q)?'':'none'})}
+function filt(){const q=document.getElementById('q').value.toLowerCase();document.querySelectorAll('tbody tr').forEach(tr=>{tr.style.display=[...tr.querySelectorAll('input[type=text],textarea')].map(i=>i.value).join(' ').toLowerCase().includes(q)?'':'none'})}
 async function edit(id,i,v,t){
  const r=R[page].find(x=>x.id===id);
  if(t==='n'){v=String(v).replace(/[^\d.-]/g,'');v=v===''?null:Number(v)} else if(t==='d'){const p=parseD(v);if(p===null){toast('Tanggal tidak dikenali. Contoh: 10 12 2026');render();return}v=p||null}
- else if(t==='t'&&v==='')v=null;
+ else if((t==='t'||t==='l')&&v==='')v=null;
  r.cells[i]=v;
  if(page==='budget'&&(i===5||i===6)&&r.cells[5]!=null)r.cells[7]=num(r.cells[5])-num(r.cells[6]);
  const {error}=await sb.from('planner_rows').update({cells:r.cells}).eq('id',id);
