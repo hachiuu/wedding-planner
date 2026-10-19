@@ -16,6 +16,7 @@ th,td{padding:4px 6px;border-bottom:1px solid #edf0ea;text-align:left}th{backgro
 td input[type=text]{width:100%;min-width:90px;border:1px solid transparent;background:transparent;padding:7px;border-radius:6px;font:inherit;color:inherit}
 td input[type=text]:hover{border-color:var(--line)}td input[type=text]:focus{outline:0;border-color:var(--green);background:#fff}
 .sel{width:100%;min-width:120px;border:1px solid var(--line);background:#fff;border-radius:6px;padding:7px;font:inherit;color:inherit}
+td input.num{text-align:right}td input.ro{color:var(--muted);cursor:default}
 .x{border:0;background:none;color:#b55;cursor:pointer;font-size:16px}#msg{position:fixed;bottom:14px;right:14px;background:var(--ink);color:#fff;padding:9px 14px;border-radius:9px;opacity:0;transition:.25s}
 textarea{width:100%;height:140px;border:1px solid var(--line);border-radius:10px;padding:10px;font:12px monospace}
 @media(max-width:760px){.app{grid-template-columns:1fr}.side{border:0;border-bottom:1px solid var(--line)}.nav{display:flex;overflow:auto}.nav button{white-space:nowrap}.cards{grid-template-columns:1fr}}
@@ -28,7 +29,7 @@ const safeFetch=(u,o={})=>{o=Object.assign({},o);if(o.headers&&typeof o.headers.
 const sb=supabase.createClient('https://oausdbwevmmazlagomkx.supabase.co','sb_publishable_YFy4TdW56ipZXlqRgoIU2A_6aXiwFp2',{global:{fetch:safeFetch}});
 // cols: [index di data, label, tipe] tipe: t=teks, n=angka, c=centang
 const S={
- budget:{n:'Wedding Budget',cols:[[0,'Kategori'],[1,'Detail'],[2,'Status','s'],[3,'Vendor'],[5,'Harga','n'],[6,'DP / Bayar','n'],[7,'Sisa','n'],[8,'Tgl bayar']]},
+ budget:{n:'Wedding Budget',cols:[[0,'Kategori'],[1,'Detail'],[2,'Status','s'],[3,'Vendor'],[5,'Harga','n'],[6,'DP / Bayar','n'],[7,'Sisa','r'],[8,'Tgl bayar']]},
  tasks:{n:'To Do List',cols:[[0,'Kategori'],[1,'Tugas'],[2,'Status','s'],[3,'Selesai','c'],[4,'PJ'],[5,'Vendor'],[6,'Kontak'],[8,'Batas waktu']]},
  guests:{n:'Daftar Tamu',cols:[[0,'Kategori','s'],[1,'Nama'],[2,'Jenis kelamin','s'],[3,'Prioritas','s'],[4,'Undangan','s']]},
  gifts:{n:'Seserahan',cols:[[0,'No'],[1,'Kategori'],[2,'Barang'],[3,'Brand'],[4,'Centang','c'],[6,'Link'],[7,'Harga anggaran','n'],[8,'Harga beli','n']]},
@@ -40,6 +41,8 @@ const OPT={tasks:['Undecided','Unprocessed','On Progress','Done'],budget:['Belum
  'guests:0':['Tamu Cita','Tamu Kasyif'],'guests:2':['Laki-laki','Perempuan'],'guests:3':['VIP (Keluarga)','VIP (Non Keluarga)','Biasa'],'guests:4':['Digital','Fisik','Lisan/Chat']};
 const rp=n=>'Rp '+new Intl.NumberFormat('id-ID').format(n||0);
 const num=v=>Number(v)||0;
+const fmtN=v=>(v===null||v===undefined||v==='')?'':Number(v).toLocaleString('en-US');
+const liveN=s=>{const d=String(s).replace(/[^\d]/g,'');return d?Number(d).toLocaleString('en-US'):''};
 const esc=s=>String(s??'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
 function toast(m){const e=document.getElementById('msg');e.textContent=m;e.style.opacity=1;setTimeout(()=>e.style.opacity=0,1800)}
 async function load(){
@@ -70,8 +73,9 @@ function render(){
  C.innerHTML=`<div class="bar"><input class="search" id="q" placeholder="Cari…" oninput="filt()"><button class="btn p" onclick="addRow()">+ Tambah baris</button></div>
  <div class="wrap"><table><thead><tr>${s.cols.map(c=>`<th>${c[1]}</th>`).join('')}<th></th></tr></thead><tbody>${rows.map(r=>`<tr data-id="${r.id}">${s.cols.map(([i,,t])=>{const v=r.cells[i];
   if(t==='c')return `<td><input type="checkbox" ${v===true?'checked':''} onchange="edit(${r.id},${i},this.checked)"></td>`;
-  const O=OPT[page+':'+i]||OPT[page];if(t==='s'&&O)return `<td><select class="sel" onchange="edit(${r.id},${i},this.value,'t')"><option value="">—</option>${O.map(o=>`<option ${v===o?'selected':''}>${o}</option>`).join('')}</select></td>`;
-  return `<td><input type="text" value="${esc(v)}" ${t==='n'?'inputmode="numeric"':''} onchange="edit(${r.id},${i},this.value,'${t||'t'}')"></td>`}).join('')}<td><button class="x" onclick="del(${r.id})">✕</button></td></tr>`).join('')}</tbody></table></div>`;
+  if(t==='r'){const a=r.cells[5],b=r.cells[6];return `<td><input type="text" class="num ro" readonly value="${(a==null&&b==null)?'':fmtN(num(a)-num(b))}"></td>`}
+  const O=OPT[page+':'+i]||OPT[page];if(t==='s'&&O)return `<td><select class="sel" onchange="edit(${r.id},${i},this.value,'t')"><option value="">—</option>${v&&!O.includes(v)?`<option selected>${esc(v)}</option>`:''}${O.map(o=>`<option ${v===o?'selected':''}>${o}</option>`).join('')}</select></td>`;
+  return `<td><input type="text" class="${t==='n'?'num':''}" value="${esc(t==='n'?fmtN(v):v)}" ${t==='n'?'inputmode="numeric" oninput="this.value=liveN(this.value)"':''} onchange="edit(${r.id},${i},this.value,'${t||'t'}')"></td>`}).join('')}<td><button class="x" onclick="del(${r.id})">✕</button></td></tr>`).join('')}</tbody></table></div>`;
 }
 function filt(){const q=document.getElementById('q').value.toLowerCase();document.querySelectorAll('tbody tr').forEach(tr=>{tr.style.display=[...tr.querySelectorAll('input[type=text]')].map(i=>i.value).join(' ').toLowerCase().includes(q)?'':'none'})}
 async function edit(id,i,v,t){
