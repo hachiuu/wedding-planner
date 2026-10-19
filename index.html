@@ -29,8 +29,8 @@ const safeFetch=(u,o={})=>{o=Object.assign({},o);if(o.headers&&typeof o.headers.
 const sb=supabase.createClient('https://oausdbwevmmazlagomkx.supabase.co','sb_publishable_YFy4TdW56ipZXlqRgoIU2A_6aXiwFp2',{global:{fetch:safeFetch}});
 // cols: [index di data, label, tipe] tipe: t=teks, n=angka, c=centang
 const S={
- budget:{n:'Wedding Budget',cols:[[0,'Kategori'],[1,'Detail'],[2,'Status','s'],[3,'Vendor'],[5,'Harga','n'],[6,'DP / Bayar','n'],[7,'Sisa','r'],[8,'Tgl bayar']]},
- tasks:{n:'To Do List',cols:[[0,'Kategori'],[1,'Tugas'],[2,'Status','s'],[3,'Selesai','c'],[4,'PJ'],[5,'Vendor'],[6,'Kontak'],[8,'Batas waktu']]},
+ budget:{n:'Wedding Budget',cols:[[0,'Kategori'],[1,'Detail'],[2,'Status','s'],[3,'Vendor'],[5,'Harga','n'],[6,'DP / Bayar','n'],[7,'Sisa','r'],[8,'Tgl bayar','d']]},
+ tasks:{n:'To Do List',cols:[[0,'Kategori'],[1,'Tugas'],[2,'Status','s'],[3,'Selesai','c'],[4,'PJ'],[5,'Vendor'],[6,'Kontak'],[8,'Batas waktu','d']]},
  guests:{n:'Daftar Tamu',cols:[[0,'Kategori','s'],[1,'Nama'],[2,'Jenis kelamin','s'],[3,'Prioritas','s'],[4,'Undangan','s']]},
  gifts:{n:'Seserahan',cols:[[0,'No'],[1,'Kategori'],[2,'Barang'],[3,'Brand'],[4,'Centang','c'],[6,'Link'],[7,'Harga anggaran','n'],[8,'Harga beli','n']]},
  songs:{n:'Playlist',cols:[[0,'No'],[1,'Judul lagu'],[2,'Keterangan']]}
@@ -43,6 +43,20 @@ const rp=n=>'Rp '+new Intl.NumberFormat('id-ID').format(n||0);
 const num=v=>Number(v)||0;
 const fmtN=v=>(v===null||v===undefined||v==='')?'':Number(v).toLocaleString('en-US');
 const liveN=s=>{const d=String(s).replace(/[^\d]/g,'');return d?Number(d).toLocaleString('en-US'):''};
+// Tanggal: ketik "10 12 2026", "10/12/26", "10 dec", "10 des 2026", atau "10122026" -> jadi "10 Dec 2026"
+const M3={jan:1,feb:2,mar:3,apr:4,may:5,mei:5,jun:6,jul:7,aug:8,agu:8,agt:8,sep:9,oct:10,okt:10,nov:11,dec:12,des:12};
+const MN=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function parseD(s){
+ s=String(s).trim().toLowerCase();if(!s)return '';
+ let d,m,y,t=s.match(/^(\d{1,2})[\s\/.\-]*([a-z]{3,})[\s\/.\-,]*(\d{2,4})?$/);
+ if(t){d=+t[1];m=M3[t[2].slice(0,3)];y=t[3]}
+ else{const n=s.match(/^(\d{1,2})[\s\/.\-]+(\d{1,2})(?:[\s\/.\-]+(\d{2,4}))?$/)||s.match(/^(\d{2})(\d{2})(\d{4}|\d{2})?$/);
+  if(n){d=+n[1];m=+n[2];y=n[3]}}
+ if(!d||!m||d>31||m>12)return null;
+ y=y?(y.length===2?2000+ +y:+y):new Date().getFullYear();
+ if(new Date(y,m-1,d).getMonth()!==m-1)return null;
+ return String(d).padStart(2,'0')+' '+MN[m-1]+' '+y;
+}
 const esc=s=>String(s??'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
 function toast(m){const e=document.getElementById('msg');e.textContent=m;e.style.opacity=1;setTimeout(()=>e.style.opacity=0,1800)}
 async function load(){
@@ -75,12 +89,13 @@ function render(){
   if(t==='c')return `<td><input type="checkbox" ${v===true?'checked':''} onchange="edit(${r.id},${i},this.checked)"></td>`;
   if(t==='r'){const a=r.cells[5],b=r.cells[6];return `<td><input type="text" class="num ro" readonly value="${(a==null&&b==null)?'':fmtN(num(a)-num(b))}"></td>`}
   const O=OPT[page+':'+i]||OPT[page];if(t==='s'&&O)return `<td><select class="sel" onchange="edit(${r.id},${i},this.value,'t')"><option value="">—</option>${v&&!O.includes(v)?`<option selected>${esc(v)}</option>`:''}${O.map(o=>`<option ${v===o?'selected':''}>${o}</option>`).join('')}</select></td>`;
-  return `<td><input type="text" class="${t==='n'?'num':''}" value="${esc(t==='n'?fmtN(v):v)}" ${t==='n'?'inputmode="numeric" oninput="this.value=liveN(this.value)"':''} onchange="edit(${r.id},${i},this.value,'${t||'t'}')"></td>`}).join('')}<td><button class="x" onclick="del(${r.id})">✕</button></td></tr>`).join('')}</tbody></table></div>`;
+  return `<td><input type="text" class="${t==='n'?'num':''}" value="${esc(t==='n'?fmtN(v):v)}" ${t==='n'?'inputmode="numeric" oninput="this.value=liveN(this.value)"':''} ${t==='d'?'placeholder="10 Dec 2026"':''} onchange="edit(${r.id},${i},this.value,'${t||'t'}')"></td>`}).join('')}<td><button class="x" onclick="del(${r.id})">✕</button></td></tr>`).join('')}</tbody></table></div>`;
 }
 function filt(){const q=document.getElementById('q').value.toLowerCase();document.querySelectorAll('tbody tr').forEach(tr=>{tr.style.display=[...tr.querySelectorAll('input[type=text]')].map(i=>i.value).join(' ').toLowerCase().includes(q)?'':'none'})}
 async function edit(id,i,v,t){
  const r=R[page].find(x=>x.id===id);
- if(t==='n'){v=String(v).replace(/[^\d.-]/g,'');v=v===''?null:Number(v)} else if(t==='t'&&v==='')v=null;
+ if(t==='n'){v=String(v).replace(/[^\d.-]/g,'');v=v===''?null:Number(v)} else if(t==='d'){const p=parseD(v);if(p===null){toast('Tanggal tidak dikenali. Contoh: 10 12 2026');render();return}v=p||null}
+ else if(t==='t'&&v==='')v=null;
  r.cells[i]=v;
  if(page==='budget'&&(i===5||i===6)&&r.cells[5]!=null)r.cells[7]=num(r.cells[5])-num(r.cells[6]);
  const {error}=await sb.from('planner_rows').update({cells:r.cells}).eq('id',id);
