@@ -53,8 +53,20 @@ th{background:transparent}td,th{border-bottom:1px solid rgba(255,255,255,.75)}
 .note{height:96px;font:14px Inter;background:rgba(255,255,255,.6);border-radius:12px}
 @media(max-width:900px){.stats,.qa{grid-template-columns:1fr 1fr}.dgrid,.hero{grid-template-columns:1fr}}
 @media(max-width:760px){.app{padding:8px}.side{position:static;height:auto}}
+body{background:radial-gradient(circle at 12% 18%,rgba(150,185,145,.8),transparent 38%),radial-gradient(circle at 88% 12%,rgba(230,208,176,.9),transparent 40%),radial-gradient(circle at 75% 88%,rgba(185,212,178,.85),transparent 42%),radial-gradient(circle at 8% 92%,rgba(238,224,200,.85),transparent 38%),linear-gradient(135deg,#cddbc8,#e2d6c1);background-attachment:fixed;min-height:100vh}
+.side,.card,.wrap,.cdbox{background:linear-gradient(145deg,rgba(255,255,255,.58),rgba(255,255,255,.24));-webkit-backdrop-filter:blur(24px) saturate(170%);backdrop-filter:blur(24px) saturate(170%);border:1px solid rgba(255,255,255,.6);box-shadow:inset 0 1px 0 rgba(255,255,255,.95),inset 0 -1px 0 rgba(255,255,255,.3),0 12px 34px rgba(70,95,70,.16);border-radius:26px}
+.card{position:relative}.card::before{content:"";position:absolute;inset:0;border-radius:inherit;background:linear-gradient(180deg,rgba(255,255,255,.4),transparent 38%);pointer-events:none}.card>*{position:relative}
+.wrap{background:linear-gradient(145deg,rgba(255,255,255,.66),rgba(255,255,255,.42))}
+.stats .s1{background:linear-gradient(145deg,rgba(196,224,190,.8),rgba(255,255,255,.3))}.stats .s2{background:linear-gradient(145deg,rgba(248,208,208,.8),rgba(255,255,255,.3))}.stats .s3{background:linear-gradient(145deg,rgba(218,212,246,.8),rgba(255,255,255,.3))}.stats .s4{background:linear-gradient(145deg,rgba(246,228,194,.85),rgba(255,255,255,.3))}
+.nav button{border-radius:14px}.nav button.on{background:rgba(255,255,255,.65);box-shadow:inset 0 1px 0 #fff,0 3px 10px rgba(70,95,70,.14)}
+.btn,.search{border-radius:999px;background:rgba(255,255,255,.55);border:1px solid rgba(255,255,255,.75);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);box-shadow:inset 0 1px 0 rgba(255,255,255,.9)}
+.btn.p{background:rgba(103,140,106,.88);color:#fff;border-color:rgba(255,255,255,.45);box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 4px 12px rgba(70,95,70,.25)}
+.qa button{border:1px solid rgba(255,255,255,.7);border-radius:20px;box-shadow:inset 0 1px 0 rgba(255,255,255,.9)}
+.q1{background:rgba(196,224,190,.6)}.q2{background:rgba(248,208,208,.6)}.q3{background:rgba(218,212,246,.6)}.q4{background:rgba(246,228,194,.65)}
+.cd,.note,td select.sel{background:rgba(255,255,255,.55);border:1px solid rgba(255,255,255,.7)}.donut div{background:rgba(255,255,255,.75)}
+.cd{border-radius:14px}td select.sel{border-radius:12px}.quote p{max-width:100%}
 </style></head><body><div class="app">
-<aside class="side"><div class="brand"><img class="logo" src="daun-logo.png" alt="" onerror="this.remove()"><div>Kasyif <span>&amp;</span> Cita<small>WEDDING PLANNER</small></div></div><nav class="nav" id="nav"></nav></aside>
+<aside class="side"><div class="brand"><div>Kasyif <span>&amp;</span> Cita<small>WEDDING PLANNER</small></div></div><nav class="nav" id="nav"></nav></aside>
 <main class="main"><h1 id="t"></h1><div class="desc" id="d"></div><div id="c">Memuat…</div></main></div><div id="msg"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
@@ -116,7 +128,7 @@ async function load(){
 }
 function render(){
  const nav=document.getElementById('nav');
- nav.innerHTML=[['dashboard','Dashboard'],...Object.keys(S).map(k=>[k,S[k].n]),['import','Import data']].map(([k,n])=>`<button class="${k===page?'on':''}" onclick="page='${k}';render()"><span>${IC[k]||'•'}</span>${n}</button>`).join('');
+ nav.innerHTML=[['dashboard','Dashboard'],...Object.keys(S).map(k=>[k,S[k].n]),['import','Import data']].map(([k,n])=>`<button class="${k===page?'on':''}" onclick="page='${k}';render()">${n}</button>`).join('');
  const T=document.getElementById('t'),D=document.getElementById('d'),C=document.getElementById('c');T.className='';
  if(page==='dashboard'){dash(T,D,C);return}
  if(false){T.textContent='Dashboard';D.textContent='Ringkasan persiapan.';
@@ -157,7 +169,7 @@ function dash(T,D,C){
  const dt=s=>{const d=new Date(String(s||'')+' 00:00');return isNaN(d)?9e15:+d};
  const up=tk.filter(r=>r.cells[3]!==true).sort((x,y)=>dt(x.cells[8])-dt(y.cells[8])).slice(0,5);
  C.innerHTML=`<div class="topbar"><div class="cdbox"><div><small>Our Wedding Day</small><input class="wd" placeholder="Atur tanggal nikah" value="${esc(mt&&mt.cells[0])}" onchange="setWd(this)"></div><div class="cd"><span id="cd0">–</span><i>Days</i></div><div class="cd"><span id="cd1">–</span><i>Hours</i></div><div class="cd"><span id="cd2">–</span><i>Mins</i></div><div class="cd"><span id="cd3">–</span><i>Secs</i></div></div></div>
- <div class="hero"><div><div class="hello">Welcome back,</div><div class="big">Kasyif <span>&amp;</span> Cita</div><div class="tag">A little progress today, for a beautiful tomorrow.</div></div><div class="card quote"><p>“Good planning makes more room for the moments that truly matter.”</p><img src="daun-kutipan.png" alt="" onerror="this.remove()"></div></div>
+ <div class="hero"><div><div class="hello">Welcome back,</div><div class="big">Kasyif <span>&amp;</span> Cita</div><div class="tag">A little progress today, for a beautiful tomorrow.</div></div><div class="card quote"><p>“Good planning makes more room for the moments that truly matter.”</p></div></div>
  <div class="stats"><div class="card s1" onclick="go('budget')"><small>Total Budget</small><b>${rp(tot)}</b><div class="pbar"><i style="width:${pc(pd,tot)}%"></i></div><small>${rp(pd)} dibayar · ${pc(pd,tot)}%</small></div>
  <div class="card s2" onclick="go('tasks')"><small>Checklist</small><b>${dn} / ${tk.length}</b><div class="pbar"><i style="width:${pc(dn,tk.length)}%"></i></div><small>${pc(dn,tk.length)}% selesai</small></div>
  <div class="card s3" onclick="go('guests')"><small>Guest List</small><b>${gs.length} tamu</b><small>${cf} hadir</small></div>
