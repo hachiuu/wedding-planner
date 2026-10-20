@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Wedding Plan Board</title>
+<title>Wedding Planner</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#f3f3e9;--ink:#203b2c;--muted:#6f7f72;--line:#dce5d8;--green:#3f704d;--soft:#e5eee1}
@@ -65,6 +65,10 @@ body{background:radial-gradient(circle at 12% 18%,rgba(150,185,145,.8),transpare
 .q1{background:rgba(196,224,190,.6)}.q2{background:rgba(248,208,208,.6)}.q3{background:rgba(218,212,246,.6)}.q4{background:rgba(246,228,194,.65)}
 .cd,.note,td select.sel{background:rgba(255,255,255,.55);border:1px solid rgba(255,255,255,.7)}.donut div{background:rgba(255,255,255,.75)}
 .cd{border-radius:14px}td select.sel{border-radius:12px}.quote p{max-width:100%}
+th.sortable{cursor:pointer;user-select:none}th.sortable:hover{color:var(--ink)}
+.dh{cursor:grab;color:#8aa08a;font-size:17px;padding:0 4px;user-select:none}.dh[draggable=false]{opacity:.3;cursor:not-allowed}
+td.act{white-space:nowrap}tr.dragging{opacity:.4}tr.dov-t td{box-shadow:inset 0 2px 0 var(--green)}tr.dov-b td{box-shadow:inset 0 -2px 0 var(--green)}
+.dh{touch-action:none;font-size:20px;padding:4px 6px}.dh[data-off]{opacity:.3;cursor:not-allowed}tr.dragging td{background:rgba(111,145,112,.2)}
 </style></head><body><div class="app">
 <aside class="side"><div class="brand"><div>Kasyif <span>&amp;</span> Cita<small>WEDDING PLANNER</small></div></div><nav class="nav" id="nav"></nav></aside>
 <main class="main"><h1 id="t"></h1><div class="desc" id="d"></div><div id="c">Memuat…</div></main></div><div id="msg"></div>
@@ -138,16 +142,47 @@ function render(){
  if(page==='import'){T.textContent='Import data';D.textContent='Dipakai sekali saja untuk memindahkan data awal ke Supabase.';
   C.innerHTML=`<div class="card"><p>1. Buka file <b>index.html lama</b> di GitHub (versi sebelum diganti).<br>2. Cari baris yang diawali <code>const DATA = </code>, copy seluruh baris itu.<br>3. Paste di kotak ini, lalu klik Import.</p><textarea id="imp" placeholder="const DATA = {...};"></textarea><p><button class="btn p" onclick="doImport()">Import ke Supabase</button></p></div>`;return}
  const s=S[page];T.textContent=s.n;D.textContent='Klik isian mana saja untuk mengedit. Tersimpan otomatis.';
- const rows=R[page]||[];
- C.innerHTML=`<div class="bar"><input class="search" id="q" placeholder="Cari…" oninput="filt()"><button class="btn p" onclick="addRow()">+ Tambah baris</button></div>
- <div class="wrap"><table style="min-width:${W[page].reduce((a,b)=>a+b,32)}px"><colgroup>${W[page].map(x=>`<col style="width:${x}px">`).join('')}<col style="width:32px"></colgroup><thead><tr>${s.cols.map(c=>`<th class="${c[2]==='n'||c[2]==='r'?'r':''}">${c[1]}</th>`).join('')}<th></th></tr></thead><tbody>${rows.map(r=>`<tr data-id="${r.id}">${s.cols.map(([i,,t])=>{const v=r.cells[i];
+ let rows=R[page]||[];const sc=SORT[page]?s.cols.find(c=>c[0]===SORT[page].i):null;if(sc)rows=sortRows(rows,sc);
+ C.innerHTML=`<div class="bar"><input class="search" id="q" placeholder="Cari…" oninput="filt()"><button class="btn p" onclick="addRow()">+ Tambah baris</button>${SORT[page]?'<button class="btn" onclick="sortBy(null)">Kembali ke urutan manual</button>':''}</div>
+ <div class="wrap"><table style="min-width:${W[page].reduce((a,b)=>a+b,58)}px"><colgroup>${W[page].map(x=>`<col style="width:${x}px">`).join('')}<col style="width:58px"></colgroup><thead><tr>${s.cols.map(c=>`<th class="${c[2]==='n'||c[2]==='r'?'r':''} sortable" onclick="sortBy(${c[0]})" title="Klik untuk mengurutkan A-Z / Z-A">${c[1]}${SORT[page]&&SORT[page].i===c[0]?(SORT[page].d>0?' ▲':' ▼'):''}</th>`).join('')}<th></th></tr></thead><tbody>${rows.map(r=>`<tr data-id="${r.id}">${s.cols.map(([i,,t])=>{const v=r.cells[i];
   if(t==='c')return `<td><input type="checkbox" ${v===true?'checked':''} onchange="edit(${r.id},${i},this.checked)"></td>`;
   if(t==='r'){const a=r.cells[5],b=r.cells[6];return `<td><input type="text" class="num ro" readonly value="${(a==null&&b==null)?'':fmtN(num(a)-num(b))}"></td>`}
   const O=OPT[page+':'+i]||OPT[page];if(t==='s'&&O)return `<td><select class="sel" onchange="edit(${r.id},${i},this.value,'t')"><option value="">—</option>${v&&!O.includes(v)?`<option selected>${esc(v)}</option>`:''}${O.map(o=>`<option ${v===o?'selected':''}>${o}</option>`).join('')}</select></td>`;
   if(!t||t==='t')return `<td><textarea rows="1" class="${SMALL[page+':'+i]?'sm':''}" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur()}" oninput="grow(this)" onchange="edit(${r.id},${i},this.value,'t')">${esc(v)}</textarea></td>`;
-  return `<td><input type="text" class="${t==='n'?'num':(t==='d'||t==='l')?'sm':''}" value="${esc(t==='n'?fmtN(v):v)}" ${t==='n'?'inputmode="numeric" oninput="this.value=liveN(this.value)"':''} ${t==='d'?'placeholder="10 Dec 2026"':''} onchange="edit(${r.id},${i},this.value,'${t||'t'}')"></td>`}).join('')}<td><button class="x" onclick="del(${r.id})">✕</button></td></tr>`).join('')}</tbody></table></div>`;
+  return `<td><input type="text" class="${t==='n'?'num':(t==='d'||t==='l')?'sm':''}" value="${esc(t==='n'?fmtN(v):v)}" ${t==='n'?'inputmode="numeric" oninput="this.value=liveN(this.value)"':''} ${t==='d'?'placeholder="10 Dec 2026"':''} onchange="edit(${r.id},${i},this.value,'${t||'t'}')"></td>`}).join('')}<td class="act"><span class="dh" ${SORT[page]?'data-off="1"':`onpointerdown="pStart(event,${r.id})" onpointermove="pMove(event)" onpointerup="pEnd(event)" onpointercancel="pEnd(event,1)" oncontextmenu="return false"`} title="${SORT[page]?'Kembali ke urutan manual dulu untuk menggeser':'Tahan dan geser untuk mengubah urutan'}">⠿</span><button class="x" onclick="del(${r.id})">✕</button></td></tr>`).join('')}</tbody></table></div>`;
  document.querySelectorAll('textarea').forEach(grow);
 }
+const SORT={};let DRAG=null;
+function sortBy(i){const s=SORT[page];if(i===null||(s&&s.i===i&&s.d===-1))delete SORT[page];else SORT[page]=(s&&s.i===i)?{i,d:-1}:{i,d:1};render()}
+function sortRows(rows,col){
+ const i=col[0],t=col[2],d=SORT[page].d;
+ const val=r=>{const c=r.cells;if(t==='r')return(c[5]==null&&c[6]==null)?null:num(c[5])-num(c[6]);if(t==='d'){const x=new Date(String(c[i]||'')+' 00:00');return isNaN(x)?null:+x}if(t==='c')return c[i]===true?1:0;const v=c[i];return(v===null||v===undefined||v==='')?null:v};
+ return[...rows].sort((a,b)=>{const x=val(a),y=val(b);if(x===null&&y===null)return 0;if(x===null)return 1;if(y===null)return-1;
+  return d*(typeof x==='number'&&typeof y==='number'?x-y:String(x).localeCompare(String(y),'id',{numeric:true,sensitivity:'base'}))})}
+function dClear(){document.querySelectorAll('tr.dov-t,tr.dov-b,tr.dragging').forEach(x=>x.classList.remove('dov-t','dov-b','dragging'))}
+function dStart(e,id){DRAG=id;e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',String(id));const tr=e.target.closest('tr');if(tr){e.dataTransfer.setDragImage(tr,20,20);tr.classList.add('dragging')}}
+function dEnd(){DRAG=null;dClear()}
+function dOver(e){if(DRAG===null)return;e.preventDefault();const tr=e.currentTarget,r=tr.getBoundingClientRect();dClear();tr.classList.add(e.clientY<r.top+r.height/2?'dov-t':'dov-b')}
+async function dDrop(e,tid){
+ e.preventDefault();const r0=e.currentTarget.getBoundingClientRect(),after=e.clientY>=r0.top+r0.height/2;dClear();
+ const id=DRAG;DRAG=null;if(id===null||id===tid)return;
+ const a=R[page],from=a.findIndex(r=>r.id===id),[m]=a.splice(from,1);let to=a.findIndex(r=>r.id===tid);if(after)to++;a.splice(to,0,m);
+ const ch=[];a.forEach((r,i)=>{if(r.pos!==i){r.pos=i;ch.push(r)}});render();
+ const res=await Promise.all(ch.map(r=>sb.from('planner_rows').update({pos:r.pos}).eq('id',r.id)));
+ toast(res.some(x=>x.error)?'Gagal menyimpan urutan':'Urutan tersimpan ✓')}
+let PD=null;
+function pStart(e,id){if(SORT[page])return;e.preventDefault();const tr=e.currentTarget.closest('tr');PD={id,tr,tid:null,after:false};tr.classList.add('dragging');e.currentTarget.setPointerCapture(e.pointerId)}
+function pMove(e){if(!PD)return;
+ const el=document.elementFromPoint(e.clientX,e.clientY),tr=el&&el.closest('tr[data-id]');
+ dClear();PD.tr.classList.add('dragging');PD.tid=null;
+ if(tr&&+tr.dataset.id!==PD.id){const r=tr.getBoundingClientRect();PD.after=e.clientY>=r.top+r.height/2;PD.tid=+tr.dataset.id;tr.classList.add(PD.after?'dov-b':'dov-t')}
+ if(e.clientY<90)window.scrollBy(0,-14);else if(e.clientY>window.innerHeight-90)window.scrollBy(0,14)}
+function pEnd(e,cancel){if(!PD)return;const {id,tid,after}=PD;PD=null;dClear();if(cancel||tid===null)return;moveRow(id,tid,after)}
+async function moveRow(id,tid,after){
+ const a=R[page],from=a.findIndex(r=>r.id===id),[m]=a.splice(from,1);let to=a.findIndex(r=>r.id===tid);if(after)to++;a.splice(to,0,m);
+ const ch=[];a.forEach((r,i)=>{if(r.pos!==i){r.pos=i;ch.push(r)}});render();
+ const res=await Promise.all(ch.map(r=>sb.from('planner_rows').update({pos:r.pos}).eq('id',r.id)));
+ toast(res.some(x=>x.error)?'Gagal menyimpan urutan':'Urutan tersimpan ✓')}
 function go(p,a){page=p;render();if(a)addRow()}
 async function tog(id){const r=R.tasks.find(x=>x.id===id);r.cells[3]=r.cells[3]!==true;await sb.from('planner_rows').update({cells:r.cells}).eq('id',id);render()}
 async function saveMeta(i,v){let m=(R.meta||[])[0];
